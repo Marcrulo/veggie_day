@@ -10,6 +10,7 @@ Send (needs the SMTP_* / MAIL_* environment variables):
 from __future__ import annotations
 
 import argparse
+import getpass
 import json
 import os
 import smtplib
@@ -31,7 +32,11 @@ def send(subject: str, text: str, to: list[str]) -> None:
     host = os.environ["SMTP_HOST"]
     port = int(os.environ.get("SMTP_PORT", "587"))
     user = os.environ.get("SMTP_USER", "")
-    password = os.environ.get("SMTP_PASSWORD", "")
+    # Gmail displays app passwords in groups of four ("abcd efgh ijkl mnop");
+    # the spaces are presentation only and must not be sent.
+    password = "".join(os.environ.get("SMTP_PASSWORD", "").split())
+    if user and not password and sys.stdin.isatty():
+        password = "".join(getpass.getpass(f"SMTP password for {user}: ").split())
     sender = os.environ.get("MAIL_FROM") or user
 
     mail = EmailMessage()
@@ -70,6 +75,11 @@ def main(argv: list[str] | None = None) -> int:
         help="send nothing if the week has no VEGANSK/VEGETARISK/FISKEDAG",
     )
     parser.add_argument("--file", help="parse a saved HTML file instead of fetching (for testing)")
+    parser.add_argument(
+        "--to",
+        action="append",
+        help="send to this address instead of MAIL_TO (repeatable; for testing)",
+    )
     args = parser.parse_args(argv)
 
     if args.file:
@@ -127,7 +137,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Subject: {subject}\n\n{text}")
         return 0
 
-    to = recipients()
+    to = args.to or recipients()
     if not to:
         print("MAIL_TO is empty - nothing to send to.", file=sys.stderr)
         return 1

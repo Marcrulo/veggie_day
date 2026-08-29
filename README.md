@@ -81,6 +81,22 @@ Add these repository secrets (Settings → Secrets and variables → Actions):
 | `MAIL_FROM` | `you@example.com` | Defaults to `SMTP_USER` |
 | `MAIL_TO` | `a@x.dk, b@y.dk` | Comma or newline separated; sent as **Bcc** |
 
+### Testing the credentials locally
+
+Send yourself one mail without touching GitHub or leaving the password in your
+shell history — omit `SMTP_PASSWORD` and it prompts:
+
+```bash
+SMTP_HOST=smtp.gmail.com SMTP_USER=you@gmail.com \
+  python notify.py --to you@example.com
+```
+
+For Gmail, `SMTP_PASSWORD` is a 16-character
+[App Password](https://myaccount.google.com/apppasswords), which requires
+2-Step Verification to be enabled on the account; the regular login password is
+rejected. Gmail shows the app password in groups of four — any spaces you paste
+are stripped before use, so either form works.
+
 The schedule is `0 15 * * 0` (Sunday 15:00 UTC). GitHub's cron can drift by up to
 ~15 minutes on busy hours — fine for this.
 
