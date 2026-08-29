@@ -64,9 +64,17 @@ class Day:
 @dataclass
 class Week:
     label: str  # e.g. "31. august - 4. september 2026"
-    week_number: str  # e.g. "Uge 36"
+    week_number: str  # e.g. "Uge 36", as printed on the page
     monday: date | None
     days: list[Day] = field(default_factory=list)
+
+    @property
+    def number(self) -> str:
+        """Just the digits, e.g. '36'. Falls back to the ISO week number."""
+        digits = re.search(r"\d+", self.week_number)
+        if digits:
+            return digits.group()
+        return str(self.monday.isocalendar()[1]) if self.monday else "?"
 
     def days_with(self, tag: str) -> list[Day]:
         return [d for d in self.days if tag in d.tags]

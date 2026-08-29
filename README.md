@@ -18,18 +18,16 @@ python -m unittest discover -s tests
 LIVE=1 python -m unittest tests.test_menu.TestLive   # also hits the real site
 ```
 
+The subject carries the announcements (`Week <n>: TAG on <weekday>`, one per
+tagged day); the body is just the week's menu, with the tags marked in place.
+
 Example output:
 
 ```
-Subject: Uge 36: VEGANSK on Monday, VEGETARISK on Monday, FISKEDAG on Friday
+Subject: Week 36: VEGANSK on Monday, VEGETARISK on Monday, FISKEDAG on Friday
 
 Canteen menu for 31. august - 4. september 2026 (Uge 36).
 
-VEGANSK on Monday
-VEGETARISK on Monday
-FISKEDAG on Friday
-
-Full week:
   Monday 31/08
     - [VEGETARISK] Risotto med svampe, løg, hvidvin og parmesan...
 ```

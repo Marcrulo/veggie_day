@@ -70,8 +70,21 @@ class TestMessage(unittest.TestCase):
             ["VEGANSK on Wednesday", "FISKEDAG on Thursday"],
         )
 
-    def test_subject_mentions_week(self):
-        self.assertTrue(message.subject(load("week36.html")).startswith("Uge 36:"))
+    def test_subject_format(self):
+        self.assertEqual(
+            message.subject(load("week36.html")),
+            "Week 36: VEGANSK on Monday, VEGETARISK on Monday, FISKEDAG on Friday",
+        )
+        self.assertEqual(
+            message.subject(load("week35.html")),
+            "Week 35: VEGANSK on Wednesday, FISKEDAG on Thursday",
+        )
+
+    def test_body_is_just_the_menu(self):
+        """The announcements live in the subject now, not above the menu."""
+        body = message.body(load("week36.html"))
+        self.assertNotIn("VEGANSK on Monday", body)
+        self.assertIn("[VEGANSK]", body)
 
     def test_body_lists_every_day(self):
         body = message.body(load("week36.html"))
@@ -116,7 +129,8 @@ class TestHtml(unittest.TestCase):
         html = message.html_body(load("week36.html"))
         self.assertNotIn("{", html, "unrendered format placeholder")
         self.assertEqual(html.count("<table"), html.count("</table>"))
-        self.assertIn("Uge 36", html)
+        self.assertIn("Week 36", html)
+        self.assertNotIn("on <strong>Monday", html)
         self.assertIn("FISKEDAG", html)
         self.assertIn("Risotto", html)
 

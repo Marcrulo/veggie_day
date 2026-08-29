@@ -38,24 +38,16 @@ def headline_lines(week: Week) -> list[str]:
 
 
 def subject(week: Week) -> str:
+    """'Week 36: VEGANSK on Monday, FISKEDAG on Friday'."""
     lines = headline_lines(week)
     if not lines:
-        return f"Canteen menu {week.week_number}: no veggie or fish day"
-    return f"{week.week_number}: " + ", ".join(lines)
+        return f"Week {week.number}: no veggie or fish day"
+    return f"Week {week.number}: " + ", ".join(lines)
 
 
 def body(week: Week) -> str:
     """Plain-text version, kept as the fallback part of the email."""
     parts = [f"Canteen menu for {week.label} ({week.week_number}).", ""]
-
-    lines = headline_lines(week)
-    if lines:
-        parts += lines
-    else:
-        parts.append("No VEGANSK, VEGETARISK or FISKEDAG marked this week.")
-    parts.append("")
-
-    parts.append("Full week:")
     for day in week.days:
         stamp = day.date.strftime("%d/%m") if day.date else ""
         parts.append(f"  {day.name_en} {stamp}".rstrip())
@@ -79,31 +71,6 @@ def _badge(tag: str, small: bool = False) -> str:
 
 def html_body(week: Week) -> str:
     """HTML version. Styles are inline because mail clients drop <style> blocks."""
-    rows = []
-
-    announcements = headlines(week)
-    if announcements:
-        for tag, day in announcements:
-            stamp = f" &middot; {day.date.strftime('%d/%m')}" if day.date else ""
-            rows.append(
-                '<tr><td style="padding:5px 0;">'
-                f"{_badge(tag)}"
-                '<span style="font-size:17px;color:#1b1c1a;padding-left:10px;">'
-                f"on <strong>{escape(day.name_en)}</strong>"
-                f'</span><span style="font-size:14px;color:#8a8f85;">{stamp}</span>'
-                "</td></tr>"
-            )
-    else:
-        rows.append(
-            '<tr><td style="padding:5px 0;font-size:16px;color:#6b6f66;">'
-            "No VEGANSK, VEGETARISK or FISKEDAG marked this week."
-            "</td></tr>"
-        )
-    announcement_table = (
-        '<table role="presentation" cellpadding="0" cellspacing="0" border="0" '
-        f'width="100%">{"".join(rows)}</table>'
-    )
-
     days = []
     for day in week.days:
         dishes = []
@@ -142,16 +109,10 @@ def html_body(week: Week) -> str:
               text-transform:uppercase;">{escape(LOCATION)}</div>
   <div style="font-size:22px;font-weight:700;color:#1b1c1a;padding-top:6px;">
     {escape(week.label)}</div>
-  <div style="font-size:14px;color:#8a8f85;padding-top:2px;">{escape(week.week_number)}</div>
+  <div style="font-size:14px;color:#8a8f85;padding-top:2px;">Week {escape(week.number)}</div>
 </td></tr>
 
-<tr><td style="padding:16px 24px 20px 24px;">{announcement_table}</td></tr>
-
-<tr><td style="padding:0 24px;">
-  <div style="font-size:12px;font-weight:700;color:#8a8f85;letter-spacing:.06em;
-              text-transform:uppercase;padding-bottom:2px;">Full week</div>
-</td></tr>
-<tr><td style="padding:0 10px 8px 10px;">{week_table}</td></tr>
+<tr><td style="padding:14px 10px 8px 10px;">{week_table}</td></tr>
 
 <tr><td style="padding:12px 24px 24px 24px;border-top:1px solid #ecefe8;">
   <a href="{MENU_LINK}" style="font-size:13px;color:#5c7a4a;text-decoration:none;">
