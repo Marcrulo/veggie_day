@@ -11,6 +11,7 @@ from veggie_menu import Week
 # badge on its dish in the menu below.
 VEGGIE_TAGS = ("VEGAN", "VEGETARIAN")
 VEGGIE_LABEL = "VEGGIE day"
+SUBJECT_PREFIX = "🥦🚨"
 
 # Badge colours in the HTML mail.
 TAG_COLORS = {
@@ -45,11 +46,10 @@ def headline_lines(week: Week) -> list[str]:
 
 
 def subject(week: Week) -> str:
-    """'Week 36: VEGGIE day on Monday and Wednesday'."""
+    """'🥦🚨 Week 36: VEGGIE day on Monday and Wednesday'."""
     lines = headline_lines(week)
-    if not lines:
-        return f"Week {week.number}: no VEGGIE day"
-    return f"Week {week.number}: " + ", ".join(lines)
+    tail = ", ".join(lines) if lines else "no VEGGIE day"
+    return f"{SUBJECT_PREFIX} Week {week.number}: {tail}"
 
 
 def body(week: Week) -> str:

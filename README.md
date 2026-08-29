@@ -28,7 +28,7 @@ in the subject — it still appears as a badge on its dish in the menu.
 Example output:
 
 ```
-Subject: Week 36: VEGGIE day on Monday
+Subject: 🥦🚨 Week 36: VEGGIE day on Monday
 
 Canteen menu for 31. August - 4. September 2026 (Week 36).
 
@@ -123,7 +123,8 @@ The schedule is `0 15 * * 0` (Sunday 15:00 UTC). GitHub's cron can drift by up t
 
 ## Adjusting things
 
-- **Wording** — `VEGGIE_LABEL`, `subject()`, `body()` and `html_body()` in
+- **Wording** — `SUBJECT_PREFIX`, `VEGGIE_LABEL`, `subject()`, `body()` and
+  `html_body()` in
   `message.py`. Preview with `--html-out preview.html`.
 - **Which tags are announced** — `VEGGIE_TAGS` in `message.py`. Tags in
   `veggie_menu.TAGS` that are not listed there are shown in the menu but never

@@ -89,14 +89,17 @@ class TestMessage(unittest.TestCase):
         self.assertEqual(message._join(["Mon", "Fri"]), "Mon and Fri")
         self.assertEqual(message._join(["Mon", "Wed", "Fri"]), "Mon, Wed and Fri")
 
+    def test_subject_starts_with_the_emoji(self):
+        self.assertTrue(message.subject(load("week36.html")).startswith("🥦🚨 "))
+
     def test_subject_format(self):
         self.assertEqual(
             message.subject(load("week36.html")),
-            "Week 36: VEGGIE day on Monday",
+            "🥦🚨 Week 36: VEGGIE day on Monday",
         )
         self.assertEqual(
             message.subject(load("week35.html")),
-            "Week 35: VEGGIE day on Wednesday",
+            "🥦🚨 Week 35: VEGGIE day on Wednesday",
         )
 
     def test_fiskedag_is_not_announced_but_stays_in_the_menu(self):
@@ -110,7 +113,7 @@ class TestMessage(unittest.TestCase):
         for dish in week.days[0].dishes:
             dish.tags = []
         self.assertEqual(message.headline_lines(week), [])
-        self.assertEqual(message.subject(week), "Week 36: no VEGGIE day")
+        self.assertEqual(message.subject(week), "🥦🚨 Week 36: no VEGGIE day")
 
     def test_body_is_just_the_menu(self):
         """The announcements live in the subject now, not above the menu."""
