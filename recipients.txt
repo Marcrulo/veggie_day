@@ -1,0 +1,8 @@
+# Mailing list for the weekly canteen menu.
+# One address per line. Blank lines and #-comments are ignored.
+# Everyone here is Bcc'd, so recipients cannot see each other.
+# Edit, commit, push - the next Sunday run picks it up. No secrets needed.
+
+marcus.presutti.eu@gmail.com
+
+# colleague@example.com

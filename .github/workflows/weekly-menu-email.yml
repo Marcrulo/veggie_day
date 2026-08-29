@@ -30,13 +30,10 @@ jobs:
       - name: Preview the email in the log
         run: python notify.py --week "${{ inputs.week || 1 }}" --dry-run
 
+      # Server and mailing list live in the repo (notify.py, recipients.txt).
+      # The app password is the only secret.
       - name: Send
         if: ${{ inputs.dry_run != true }}
         env:
-          SMTP_HOST: ${{ secrets.SMTP_HOST }}
-          SMTP_PORT: ${{ secrets.SMTP_PORT }}
-          SMTP_USER: ${{ secrets.SMTP_USER }}
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
-          MAIL_FROM: ${{ secrets.MAIL_FROM }}
-          MAIL_TO: ${{ secrets.MAIL_TO }}
         run: python notify.py --week "${{ inputs.week || 1 }}"

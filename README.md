@@ -65,44 +65,52 @@ blank email.
 | `veggie_menu.py` | Fetch + parse into `Week` / `Day` / `Dish` |
 | `message.py` | Email subject and body — **edit the wording here** |
 | `notify.py` | CLI: fetch, format, send over SMTP |
+| `recipients.txt` | The mailing list — **edit this to add people** |
 | `tests/` | Unit tests against saved HTML fixtures |
 | `.github/workflows/weekly-menu-email.yml` | Sunday cron |
 
 ## GitHub setup
 
-Add these repository secrets (Settings → Secrets and variables → Actions):
+The repo is private, so everything except the password lives in the code:
 
-| Secret | Example | Notes |
-| --- | --- | --- |
-| `SMTP_HOST` | `smtp.gmail.com` | |
-| `SMTP_PORT` | `587` | 587 = STARTTLS, 465 = implicit TLS |
-| `SMTP_USER` | `you@example.com` | |
-| `SMTP_PASSWORD` | app password | Gmail needs an App Password, not your login |
-| `MAIL_FROM` | `you@example.com` | Defaults to `SMTP_USER` |
-| `MAIL_TO` | `a@x.dk, b@y.dk` | Comma or newline separated; sent as **Bcc** |
+| What | Where |
+| --- | --- |
+| SMTP server, port, account, From | `SMTP_HOST` … `MAIL_FROM` at the top of `notify.py` |
+| Mailing list | `recipients.txt` |
+| **App password** | GitHub secret `SMTP_PASSWORD` — the only secret |
 
-### Testing the credentials locally
+Add it under Settings → Secrets and variables → Actions → New repository secret,
+named `SMTP_PASSWORD`. For Gmail that is a 16-character
+[App Password](https://myaccount.google.com/apppasswords), which requires
+2-Step Verification on the account; the normal login password is rejected. Gmail
+shows it in groups of four — any spaces are stripped before use.
 
-Send yourself one mail without touching GitHub or leaving the password in your
-shell history — omit `SMTP_PASSWORD` and it prompts:
+Every setting also accepts an environment variable of the same name as an
+override, which is handy for testing without editing the file.
+
+### Changing the mailing list
+
+Edit `recipients.txt`, commit, push. One address per line, `#` starts a comment,
+duplicates and blank lines are dropped. Everyone is **Bcc**'d, so recipients
+never see each other's addresses. No secret to update, and the diff shows who
+was added or removed.
+
+### Testing before you schedule it
 
 ```bash
-SMTP_HOST=smtp.gmail.com SMTP_USER=you@gmail.com \
-  python notify.py --to you@example.com
+python notify.py --dry-run                 # print the email, send nothing
+python notify.py --to you@example.com      # real send, ignores recipients.txt
 ```
 
-For Gmail, `SMTP_PASSWORD` is a 16-character
-[App Password](https://myaccount.google.com/apppasswords), which requires
-2-Step Verification to be enabled on the account; the regular login password is
-rejected. Gmail shows the app password in groups of four — any spaces you paste
-are stripped before use, so either form works.
+The second prompts for the password (hidden, not stored in shell history) unless
+`SMTP_PASSWORD` is set.
+
+Then run it from the Actions tab: **Run workflow** with `dry_run: true` prints
+the email into the job log without sending. Untick it to send for real. The
+scheduled run always sends.
 
 The schedule is `0 15 * * 0` (Sunday 15:00 UTC). GitHub's cron can drift by up to
 ~15 minutes on busy hours — fine for this.
-
-Run it by hand from the Actions tab first: **Run workflow** with `dry_run: true`
-prints the email into the job log without sending anything. Untick it to send for
-real. The scheduled run always sends.
 
 ## Adjusting things
 

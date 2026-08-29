@@ -3,7 +3,7 @@
 Run locally to preview:
     python notify.py --dry-run
 
-Send (needs the SMTP_* / MAIL_* environment variables):
+Send (SMTP_PASSWORD is the only thing not in this repo):
     python notify.py
 """
 
@@ -17,33 +17,52 @@ import smtplib
 import sys
 from datetime import date
 from email.message import EmailMessage
+from pathlib import Path
 
 import message
 import veggie_menu
 
+# --- Configuration ---------------------------------------------------------
+# Everything here is safe to keep in the repo. The password is not: it comes
+# from the SMTP_PASSWORD environment variable (a GitHub Actions secret).
+SMTP_HOST = "smtp.gmail.com"
+SMTP_PORT = 587  # 587 = STARTTLS, 465 = implicit TLS
+SMTP_USER = "marcus.pythontest@gmail.com"
+MAIL_FROM = SMTP_USER  # Gmail rewrites From to the authenticated account anyway
 
-def recipients() -> list[str]:
-    """MAIL_TO is a comma or newline separated list of addresses."""
-    raw = os.environ.get("MAIL_TO", "")
-    return [addr.strip() for addr in raw.replace("\n", ",").split(",") if addr.strip()]
+# One address per line; '#' starts a comment. Edit this file to change the list.
+RECIPIENTS_FILE = Path(__file__).resolve().parent / "recipients.txt"
+# ---------------------------------------------------------------------------
+
+
+def recipients(path: Path | str = RECIPIENTS_FILE) -> list[str]:
+    """Read the mailing list, ignoring blank lines and # comments."""
+    addresses = []
+    for line in Path(path).read_text(encoding="utf-8").splitlines():
+        address = line.split("#", 1)[0].strip()
+        if address and address not in addresses:
+            addresses.append(address)
+    return addresses
 
 
 def send(subject: str, text: str, to: list[str]) -> None:
-    host = os.environ["SMTP_HOST"]
-    port = int(os.environ.get("SMTP_PORT", "587"))
-    user = os.environ.get("SMTP_USER", "")
+    host = os.environ.get("SMTP_HOST", SMTP_HOST)
+    port = int(os.environ.get("SMTP_PORT", SMTP_PORT))
+    user = os.environ.get("SMTP_USER", SMTP_USER)
+    sender = os.environ.get("MAIL_FROM", MAIL_FROM) or user
     # Gmail displays app passwords in groups of four ("abcd efgh ijkl mnop");
     # the spaces are presentation only and must not be sent.
     password = "".join(os.environ.get("SMTP_PASSWORD", "").split())
-    if user and not password and sys.stdin.isatty():
+    if user and not password:
+        if not sys.stdin.isatty():
+            raise SystemExit("SMTP_PASSWORD is not set (add it as a GitHub Actions secret).")
         password = "".join(getpass.getpass(f"SMTP password for {user}: ").split())
-    sender = os.environ.get("MAIL_FROM") or user
 
     mail = EmailMessage()
     mail["Subject"] = subject
     mail["From"] = sender
     # Recipients go in Bcc so the list is not exposed to everyone.
-    mail["To"] = os.environ.get("MAIL_TO_HEADER", sender)
+    mail["To"] = sender
     mail["Bcc"] = ", ".join(to)
     mail.set_content(text)
 
@@ -78,7 +97,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--to",
         action="append",
-        help="send to this address instead of MAIL_TO (repeatable; for testing)",
+        help="send to this address instead of recipients.txt (repeatable; for testing)",
     )
     args = parser.parse_args(argv)
 
@@ -139,7 +158,7 @@ def main(argv: list[str] | None = None) -> int:
 
     to = args.to or recipients()
     if not to:
-        print("MAIL_TO is empty - nothing to send to.", file=sys.stderr)
+        print(f"{RECIPIENTS_FILE.name} has no addresses - nothing to send.", file=sys.stderr)
         return 1
 
     send(subject, text, to)

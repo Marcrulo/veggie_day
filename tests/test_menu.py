@@ -7,6 +7,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 import message  # noqa: E402
+import notify  # noqa: E402
 import veggie_menu  # noqa: E402
 
 FIXTURES = ROOT / "tests" / "fixtures"
@@ -77,6 +78,23 @@ class TestMessage(unittest.TestCase):
         for day in ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]:
             self.assertIn(day, body)
         self.assertIn("[FISKEDAG]", body)
+
+
+class TestRecipients(unittest.TestCase):
+    def test_repo_list_is_readable(self):
+        self.assertTrue(notify.recipients(), "recipients.txt has no addresses")
+
+    def test_comments_and_blanks_and_dupes_are_ignored(self):
+        import tempfile
+
+        with tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False) as handle:
+            handle.write(
+                "# a comment\n\n"
+                "a@x.dk\n"
+                "  b@y.dk  # trailing comment\n"
+                "a@x.dk\n"
+            )
+        self.assertEqual(notify.recipients(handle.name), ["a@x.dk", "b@y.dk"])
 
 
 class TestLive(unittest.TestCase):
