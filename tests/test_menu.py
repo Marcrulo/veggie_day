@@ -67,23 +67,45 @@ class TestMessage(unittest.TestCase):
     def test_headlines(self):
         self.assertEqual(
             message.headline_lines(load("week35.html")),
-            ["VEGANSK on Wednesday", "FISKEDAG on Thursday"],
+            ["VEGGIE day on Wednesday", "FISKEDAG on Thursday"],
         )
+
+    def test_a_day_with_both_veggie_tags_counts_once(self):
+        week = load("week36.html")  # Monday is VEGETARISK and VEGANSK
+        self.assertEqual(
+            message.headline_lines(week),
+            ["VEGGIE day on Monday", "FISKEDAG on Friday"],
+        )
+
+    def test_veggie_days_are_joined(self):
+        week = load("week36.html")
+        week.days[2].dishes[0].tags = ["VEGETARISK"]
+        self.assertEqual(message.headline_lines(week)[0], "VEGGIE day on Monday and Wednesday")
+        week.days[3].dishes[0].tags = ["VEGANSK"]
+        self.assertEqual(
+            message.headline_lines(week)[0], "VEGGIE day on Monday, Wednesday and Thursday"
+        )
+
+    def test_join_helper(self):
+        self.assertEqual(message._join([]), "")
+        self.assertEqual(message._join(["Mon"]), "Mon")
+        self.assertEqual(message._join(["Mon", "Fri"]), "Mon and Fri")
+        self.assertEqual(message._join(["Mon", "Wed", "Fri"]), "Mon, Wed and Fri")
 
     def test_subject_format(self):
         self.assertEqual(
             message.subject(load("week36.html")),
-            "Week 36: VEGANSK on Monday, VEGETARISK on Monday, FISKEDAG on Friday",
+            "Week 36: VEGGIE day on Monday, FISKEDAG on Friday",
         )
         self.assertEqual(
             message.subject(load("week35.html")),
-            "Week 35: VEGANSK on Wednesday, FISKEDAG on Thursday",
+            "Week 35: VEGGIE day on Wednesday, FISKEDAG on Thursday",
         )
 
     def test_body_is_just_the_menu(self):
         """The announcements live in the subject now, not above the menu."""
         body = message.body(load("week36.html"))
-        self.assertNotIn("VEGANSK on Monday", body)
+        self.assertNotIn("VEGGIE day on Monday", body)
         self.assertIn("[VEGANSK]", body)
 
     def test_body_lists_every_day(self):

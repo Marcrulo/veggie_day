@@ -4,14 +4,16 @@ from __future__ import annotations
 
 from html import escape
 
-from veggie_menu import TAGS, Day, Week
+from veggie_menu import Week
 
-# How each tag is announced, and the colour of its badge in the HTML mail.
-TAG_LABELS = {
-    "VEGANSK": "VEGANSK",
-    "VEGETARISK": "VEGETARISK",
-    "FISKEDAG": "FISKEDAG",
-}
+# VEGANSK and VEGETARISK are announced together as one "VEGGIE day"; fish is
+# announced on its own. The badges in the menu below still show the exact tag.
+VEGGIE_TAGS = ("VEGANSK", "VEGETARISK")
+VEGGIE_LABEL = "VEGGIE day"
+FISH_TAG = "FISKEDAG"
+FISH_LABEL = "FISKEDAG"
+
+# Badge colours in the HTML mail.
 TAG_COLORS = {
     "VEGANSK": ("#e7f4ea", "#1d6b34"),  # background, text
     "VEGETARISK": ("#eef3e2", "#4f6b1d"),
@@ -27,14 +29,26 @@ FONT = (
 )
 
 
-def headlines(week: Week) -> list[tuple[str, Day]]:
-    """The announcements, in tag order: ('VEGANSK', <Monday>)."""
-    return [(tag, day) for tag in TAGS for day in week.days_with(tag)]
+def _join(names: list[str]) -> str:
+    """['Monday'] -> 'Monday'; ['Monday', 'Friday'] -> 'Monday and Friday'."""
+    if len(names) <= 1:
+        return "".join(names)
+    return ", ".join(names[:-1]) + " and " + names[-1]
 
 
 def headline_lines(week: Week) -> list[str]:
-    """The one-liners, e.g. 'VEGANSK on Wednesday'."""
-    return [f"{TAG_LABELS[tag]} on {day.name_en}" for tag, day in headlines(week)]
+    """The announcements, e.g. ['VEGGIE day on Monday and Wednesday'].
+
+    A day counts once even if it carries both veggie tags.
+    """
+    lines = []
+    veggie = [d.name_en for d in week.days if any(t in VEGGIE_TAGS for t in d.tags)]
+    if veggie:
+        lines.append(f"{VEGGIE_LABEL} on {_join(veggie)}")
+    fish = [d.name_en for d in week.days if FISH_TAG in d.tags]
+    if fish:
+        lines.append(f"{FISH_LABEL} on {_join(fish)}")
+    return lines
 
 
 def subject(week: Week) -> str:
