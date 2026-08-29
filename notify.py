@@ -27,7 +27,7 @@ import veggie_menu
 # from the SMTP_PASSWORD environment variable (a GitHub Actions secret).
 SMTP_HOST = "smtp.gmail.com"
 SMTP_PORT = 587  # 587 = STARTTLS, 465 = implicit TLS
-SMTP_USER = "marcus.pythontest@gmail.com"
+SMTP_USER = "mpautomation123@gmail.com"
 MAIL_FROM = SMTP_USER  # Gmail rewrites From to the authenticated account anyway
 
 # One address per line; '#' starts a comment. Edit this file to change the list.
