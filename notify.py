@@ -93,7 +93,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--skip-if-empty",
         action="store_true",
-        help="send nothing if the week has no VEGANSK/VEGETARISK/FISKEDAG",
+        help="send nothing if the week has no VEGAN/VEGETARIAN day",
     )
     parser.add_argument(
         "--html-out",
@@ -142,8 +142,7 @@ def main(argv: list[str] | None = None) -> int:
                     "headlines": message.headline_lines(week),
                     "days": [
                         {
-                            "day": day.name_en,
-                            "day_da": day.name_da,
+                            "day": day.name,
                             "date": day.date.isoformat() if day.date else None,
                             "tags": day.tags,
                             "dishes": [{"title": d.title, "tags": d.tags} for d in day.dishes],

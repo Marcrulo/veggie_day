@@ -1,9 +1,10 @@
 # veggie_day
 
 Scrapes the Coor canteen week menu for **Lautrupbjerg 7** and emails a mailing list
-which days are marked `VEGANSK`, `VEGETARISK` or `FISKEDAG`.
+which days are marked `VEGAN`, `VEGETARIAN` or `FISH DAY`.
 
-Source: <https://gn.foodbycoor.dk/lautrupbjerg-7/da/ugemenu>
+Source: <https://gn.foodbycoor.dk/lautrupbjerg-7/en/weekmenu> (the site's own
+English edition — day names, dishes and tags all come through in English)
 
 Python 3.9+, standard library only — no dependencies to install.
 
@@ -19,9 +20,9 @@ LIVE=1 python -m unittest tests.test_menu.TestLive   # also hits the real site
 ```
 
 The subject carries the announcements; the body is just the week's menu, with the
-tags marked in place. Only `VEGANSK` and `VEGETARISK` are announced, together as
+tags marked in place. Only `VEGAN` and `VEGETARIAN` are announced, together as
 one **VEGGIE day** (a day tagged both ways is named once), with multiple days
-joined: `VEGGIE day on Monday and Wednesday`. `FISKEDAG` is intentionally *not*
+joined: `VEGGIE day on Monday and Wednesday`. `FISH DAY` is intentionally *not*
 in the subject — it still appears as a badge on its dish in the menu.
 
 Example output:
@@ -29,10 +30,11 @@ Example output:
 ```
 Subject: Week 36: VEGGIE day on Monday
 
-Canteen menu for 31. august - 4. september 2026 (Uge 36).
+Canteen menu for 31. August - 4. September 2026 (Week 36).
 
   Monday 31/08
-    - [VEGETARISK] Risotto med svampe, løg, hvidvin og parmesan...
+    - [VEGETARIAN] Risotto with mushrooms, onions, white wine and parmesan...
+    - [VEGAN] Sweet potatoes and chickpeas in spicy curry with coconut milk...
 ```
 
 ## How the scraping works
@@ -49,15 +51,15 @@ Each `<div class="day">` holds a Danish day name and one `element title` div per
 dish. Themed days are written as an **ALL-CAPS prefix** on the dish title:
 
 ```
-VEGANSK        Ratatouille af squash, peberfrugt og tomat
+VEGAN        Ratatouille of squash, bell pepper and tomato
 ```
 
 So the tag match is case-sensitive and anchored to the start of the title. That
-matters: `Vegansk Chili sin carne` and `Vegetarisk biksemad` are just dish names
-and are deliberately *not* counted as themed days. There is a test for this.
+matters: `Vegan Chili sin carne` and `Vegetarian bisque` are just dish names and
+are deliberately *not* counted as themed days. There is a test for this.
 
 Dates aren't in the markup per day, only the range in the heading
-(`31. august - 4. september 2026`), so dates are derived from that Monday plus
+(`31. August - 4. September 2026`), so dates are derived from that Monday plus
 the weekday offset. Saturday and Sunday appear as empty day divs and are skipped;
 some weeks are Mon–Thu only.
 
@@ -125,12 +127,15 @@ The schedule is `0 15 * * 0` (Sunday 15:00 UTC). GitHub's cron can drift by up t
   `message.py`. Preview with `--html-out preview.html`.
 - **Which tags are announced** — `VEGGIE_TAGS` in `message.py`. Tags in
   `veggie_menu.TAGS` that are not listed there are shown in the menu but never
-  in the subject, which is how `FISKEDAG` is handled.
+  in the subject, which is how `FISH DAY` is handled.
 - **Badge colours** — `TAG_COLORS` in `message.py`, `(background, text)` per tag.
 - **Only mail when there's something to announce** — add `--skip-if-empty` to the
   send step; otherwise a week with no veggie day still gets a "no VEGGIE day" mail.
 - **Another canteen** — change `MENU_URL` in `veggie_menu.py`; the other
   Lautrupbjerg locations use the same layout.
+- **Back to Danish** — point `MENU_URL` at `/da/ugemenu` and swap `TAGS`,
+  `DAY_NAMES` and `MONTHS` in `veggie_menu.py` for the Danish words (the Danish
+  page says `VEGANSK` / `VEGETARISK` / `FISKEDAG`, `Mandag`…, `august`…).
 - **More tags** — add to `TAGS` in `veggie_menu.py` and `TAG_LABELS` in
   `message.py`.
 

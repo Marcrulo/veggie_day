@@ -12,19 +12,19 @@ import urllib.request
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 
-MENU_URL = "https://gn.foodbycoor.dk/lautrupbjerg-7/da/ugemenu"
+MENU_URL = "https://gn.foodbycoor.dk/lautrupbjerg-7/en/weekmenu"
 
 # The canteen writes these as an ALL-CAPS prefix on the dish title, e.g.
-# "VEGANSK        Ratatouille af squash ...". Lower/mixed case mentions
-# ("Vegansk Chili sin carne") are just dish names, not a themed day.
-TAGS = ("VEGANSK", "VEGETARISK", "FISKEDAG")
+# "VEGAN        Ratatouille of squash ...". Lower/mixed case mentions
+# ("Vegan Chili sin carne") are just dish names, not a themed day.
+# Longest first so VEGETARIAN is not shadowed by a shorter alternative.
+TAGS = ("VEGETARIAN", "VEGAN", "FISH DAY")
 
-DAY_NAMES = ["Mandag", "Tirsdag", "Onsdag", "Torsdag", "Fredag", "Lørdag", "Søndag"]
-DAYS_EN = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 
-DANISH_MONTHS = {
-    "januar": 1, "februar": 2, "marts": 3, "april": 4, "maj": 5, "juni": 6,
-    "juli": 7, "august": 8, "september": 9, "oktober": 10, "november": 11,
+MONTHS = {
+    "january": 1, "february": 2, "march": 3, "april": 4, "may": 5, "june": 6,
+    "july": 7, "august": 8, "september": 9, "october": 10, "november": 11,
     "december": 12,
 }
 
@@ -35,7 +35,7 @@ _HEADER_RE = re.compile(
 _DAY_BLOCK_RE = re.compile(r'<div class="day">(.*?)(?=<div class="day">|$)', re.S)
 _DAY_NAME_RE = re.compile(r"<h2>\s*(.*?)\s*</h2>", re.S)
 _TITLE_RE = re.compile(r'<div class="element title[^"]*">\s*(.*?)\s*</div>', re.S)
-_DATE_RE = re.compile(r"(\d{1,2})\.\s*([a-zA-ZæøåÆØÅ]+)(?:\s+(\d{4}))?")
+_DATE_RE = re.compile(r"(\d{1,2})\.\s*([a-zA-Z]+)(?:\s+(\d{4}))?")
 
 
 @dataclass
@@ -46,8 +46,7 @@ class Dish:
 
 @dataclass
 class Day:
-    name_da: str
-    name_en: str
+    name: str
     date: date | None
     dishes: list[Dish] = field(default_factory=list)
 
@@ -63,8 +62,8 @@ class Day:
 
 @dataclass
 class Week:
-    label: str  # e.g. "31. august - 4. september 2026"
-    week_number: str  # e.g. "Uge 36", as printed on the page
+    label: str  # e.g. "31. August - 4. September 2026"
+    week_number: str  # e.g. "Week 36", as printed on the page
     monday: date | None
     days: list[Day] = field(default_factory=list)
 
@@ -108,7 +107,7 @@ def _split_tags(title: str) -> tuple[str, list[str]]:
 
 
 def _parse_monday(label: str) -> date | None:
-    """Turn '31. august - 4. september 2026' into the Monday of that week."""
+    """Turn '31. August - 4. September 2026' into the Monday of that week."""
     matches = _DATE_RE.findall(label)
     if not matches:
         return None
@@ -116,14 +115,14 @@ def _parse_monday(label: str) -> date | None:
     if year is None:
         return None
     day, month_name, _ = matches[0]
-    month = DANISH_MONTHS.get(month_name.lower())
+    month = MONTHS.get(month_name.lower())
     if month is None:
         return None
     start = date(year, month, int(day))
     # The year is only printed once, at the end of the range. Across new year
-    # ("28. december - 1. januar 2027") the start belongs to the year before.
+    # ("28. December - 1. January 2027") the start belongs to the year before.
     end_day, end_month_name, _ = matches[-1]
-    end_month = DANISH_MONTHS.get(end_month_name.lower())
+    end_month = MONTHS.get(end_month_name.lower())
     if end_month is not None and start > date(year, end_month, int(end_day)):
         start = start.replace(year=year - 1)
     return start - timedelta(days=start.weekday())
@@ -149,10 +148,10 @@ def parse(page_html: str) -> Week:
         name_match = _DAY_NAME_RE.search(block)
         if not name_match:
             continue
-        name_da = _clean(name_match.group(1))
-        if name_da not in DAY_NAMES:
+        name = _clean(name_match.group(1))
+        if name not in DAY_NAMES:
             continue
-        index = DAY_NAMES.index(name_da)
+        index = DAY_NAMES.index(name)
 
         dishes = []
         for raw_title in _TITLE_RE.findall(block):
@@ -162,8 +161,7 @@ def parse(page_html: str) -> Week:
 
         days.append(
             Day(
-                name_da=name_da,
-                name_en=DAYS_EN[index],
+                name=name,
                 date=monday + timedelta(days=index) if monday else None,
                 dishes=dishes,
             )

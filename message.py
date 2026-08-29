@@ -6,22 +6,22 @@ from html import escape
 
 from veggie_menu import Week
 
-# Only VEGANSK and VEGETARISK reach the subject line, together as one
-# "VEGGIE day". FISKEDAG is deliberately not announced - it still shows as a
+# Only VEGAN and VEGETARIAN reach the subject line, together as one
+# "VEGGIE day". FISH DAY is deliberately not announced - it still shows as a
 # badge on its dish in the menu below.
-VEGGIE_TAGS = ("VEGANSK", "VEGETARISK")
+VEGGIE_TAGS = ("VEGAN", "VEGETARIAN")
 VEGGIE_LABEL = "VEGGIE day"
 
 # Badge colours in the HTML mail.
 TAG_COLORS = {
-    "VEGANSK": ("#e7f4ea", "#1d6b34"),  # background, text
-    "VEGETARISK": ("#eef3e2", "#4f6b1d"),
-    "FISKEDAG": ("#e5eff7", "#1d4f6b"),
+    "VEGAN": ("#e7f4ea", "#1d6b34"),  # background, text
+    "VEGETARIAN": ("#eef3e2", "#4f6b1d"),
+    "FISH DAY": ("#e5eff7", "#1d4f6b"),
 }
 DEFAULT_COLORS = ("#eeeeee", "#555555")
 
-MENU_LINK = "https://gn.foodbycoor.dk/lautrupbjerg-7/da/ugemenu"
-LOCATION = "Kantinen · Lautrupbjerg 7"
+MENU_LINK = "https://gn.foodbycoor.dk/lautrupbjerg-7/en/weekmenu"
+LOCATION = "Canteen · Lautrupbjerg 7"
 
 FONT = (
     "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif"
@@ -40,7 +40,7 @@ def headline_lines(week: Week) -> list[str]:
 
     A day counts once even if it carries both veggie tags.
     """
-    veggie = [d.name_en for d in week.days if any(t in VEGGIE_TAGS for t in d.tags)]
+    veggie = [d.name for d in week.days if any(t in VEGGIE_TAGS for t in d.tags)]
     return [f"{VEGGIE_LABEL} on {_join(veggie)}"] if veggie else []
 
 
@@ -57,7 +57,7 @@ def body(week: Week) -> str:
     parts = [f"Canteen menu for {week.label} ({week.week_number}).", ""]
     for day in week.days:
         stamp = day.date.strftime("%d/%m") if day.date else ""
-        parts.append(f"  {day.name_en} {stamp}".rstrip())
+        parts.append(f"  {day.name} {stamp}".rstrip())
         for dish in day.dishes:
             prefix = f"[{'/'.join(dish.tags)}] " if dish.tags else ""
             parts.append(f"    - {prefix}{dish.title}")
@@ -93,7 +93,7 @@ def html_body(week: Week) -> str:
             f'<tr><td style="{highlight}padding:12px 14px;border-top:1px solid #ecefe8;">'
             '<div style="font-size:13px;font-weight:700;color:#1b1c1a;'
             'letter-spacing:.03em;text-transform:uppercase;padding-bottom:4px;">'
-            f'{escape(day.name_en)} <span style="color:#a2a79b;font-weight:400;">{stamp}</span>'
+            f'{escape(day.name)} <span style="color:#a2a79b;font-weight:400;">{stamp}</span>'
             f'</div>{"".join(dishes)}</td></tr>'
         )
     week_table = (
