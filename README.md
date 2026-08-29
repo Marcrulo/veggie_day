@@ -118,8 +118,11 @@ Then run it from the Actions tab: **Run workflow** with `dry_run: true` prints
 the email into the job log without sending. Untick it to send for real. The
 scheduled run always sends.
 
-The schedule is `0 15 * * 0` (Sunday 15:00 UTC). GitHub's cron can drift by up to
-~15 minutes on busy hours — fine for this.
+The schedule is `23 15 * * 0` (Sunday 15:23 UTC, 17:23 Danish summer time). The
+odd minute is deliberate: GitHub runs scheduled jobs on shared capacity and can
+*drop* them at peak times, and the start of every hour is peak. Expect some drift
+regardless. Note that scheduled runs always send — `dry_run` only defaults to
+true for the manual button.
 
 ## Adjusting things
 

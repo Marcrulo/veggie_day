@@ -2,8 +2,11 @@ name: Weekly canteen menu email
 
 on:
   schedule:
-    # 15:00 UTC every Sunday (17:00 Danish summer time, 16:00 in winter).
-    - cron: "0 15 * * 0"
+    # 15:23 UTC every Sunday (17:23 Danish summer time, 16:23 in winter).
+    # Deliberately not on the hour: GitHub queues scheduled jobs on shared
+    # capacity and can drop them outright at peak times, which is the start of
+    # every hour.
+    - cron: "23 15 * * 0"
   workflow_dispatch:
     inputs:
       dry_run:
