@@ -124,8 +124,7 @@ The schedule is `0 15 * * 0` (Sunday 15:00 UTC). GitHub's cron can drift by up t
 ## Adjusting things
 
 - **Wording** — `SUBJECT_PREFIX`, `VEGGIE_LABEL`, `subject()`, `body()` and
-  `html_body()` in
-  `message.py`. Preview with `--html-out preview.html`.
+  `html_body()` in `message.py`. Preview with `--html-out preview.html`.
 - **Which tags are announced** — `VEGGIE_TAGS` in `message.py`. Tags in
   `veggie_menu.TAGS` that are not listed there are shown in the menu but never
   in the subject, which is how `FISH DAY` is handled.
