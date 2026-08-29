@@ -45,7 +45,7 @@ def recipients(path: Path | str = RECIPIENTS_FILE) -> list[str]:
     return addresses
 
 
-def send(subject: str, text: str, to: list[str]) -> None:
+def send(subject: str, text: str, to: list[str], html: str | None = None) -> None:
     host = os.environ.get("SMTP_HOST", SMTP_HOST)
     port = int(os.environ.get("SMTP_PORT", SMTP_PORT))
     user = os.environ.get("SMTP_USER", SMTP_USER)
@@ -65,6 +65,9 @@ def send(subject: str, text: str, to: list[str]) -> None:
     mail["To"] = sender
     mail["Bcc"] = ", ".join(to)
     mail.set_content(text)
+    if html:
+        # multipart/alternative: clients that cannot render HTML show `text`.
+        mail.add_alternative(html, subtype="html")
 
     if port == 465:
         server = smtplib.SMTP_SSL(host, port, timeout=30)
@@ -82,9 +85,8 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--week",
-        type=int,
-        default=1,
-        help="0 = current week, 1 = next week (default, for the Sunday run)",
+        default="auto",
+        help="auto (default) picks the tab holding next Monday; or force 0 / 1",
     )
     parser.add_argument("--dry-run", action="store_true", help="print the email instead of sending")
     parser.add_argument("--json", action="store_true", help="dump the parsed menu as JSON and exit")
@@ -92,6 +94,11 @@ def main(argv: list[str] | None = None) -> int:
         "--skip-if-empty",
         action="store_true",
         help="send nothing if the week has no VEGANSK/VEGETARISK/FISKEDAG",
+    )
+    parser.add_argument(
+        "--html-out",
+        metavar="PATH",
+        help="write the HTML email to a file to preview it in a browser",
     )
     parser.add_argument("--file", help="parse a saved HTML file instead of fetching (for testing)")
     parser.add_argument(
@@ -104,17 +111,22 @@ def main(argv: list[str] | None = None) -> int:
     if args.file:
         with open(args.file, encoding="utf-8") as handle:
             week = veggie_menu.parse(handle.read())
+    elif args.week == "auto":
+        try:
+            week = veggie_menu.get_upcoming_week()
+        except LookupError as error:
+            print(error, file=sys.stderr)
+            return 1
     else:
-        week = veggie_menu.get_week(active_week=args.week)
+        week = veggie_menu.get_week(active_week=int(args.week))
 
     if not week.days:
         print("No menu found on the page - the site layout may have changed.", file=sys.stderr)
         return 1
 
-    # Sanity check for the scheduled run: the site's "next week" tab should point
-    # at a week that has not started yet. If this ever warns, the tab numbering
-    # rolled over and --week needs adjusting.
-    if week.monday and week.monday <= date.today() and not args.file:
+    # Only reachable when a tab was forced with --week 0/1; --week auto selects
+    # by date and fails loudly instead.
+    if week.monday and week.monday <= date.today() and not args.file and args.week != "auto":
         print(
             f"Warning: week {week.week_number} starts {week.monday}, which is not in the future.",
             file=sys.stderr,
@@ -127,7 +139,7 @@ def main(argv: list[str] | None = None) -> int:
                     "label": week.label,
                     "week_number": week.week_number,
                     "monday": week.monday.isoformat() if week.monday else None,
-                    "headlines": message.headlines(week),
+                    "headlines": message.headline_lines(week),
                     "days": [
                         {
                             "day": day.name_en,
@@ -147,9 +159,15 @@ def main(argv: list[str] | None = None) -> int:
 
     subject = message.subject(week)
     text = message.body(week)
+    html = message.html_body(week)
 
-    if args.skip_if_empty and not message.headlines(week):
+    if args.skip_if_empty and not message.headline_lines(week):
         print("Nothing tagged this week; skipping.")
+        return 0
+
+    if args.html_out:
+        Path(args.html_out).write_text(html, encoding="utf-8")
+        print(f"Wrote {args.html_out} - open it in a browser to preview.")
         return 0
 
     if args.dry_run:
@@ -161,7 +179,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"{RECIPIENTS_FILE.name} has no addresses - nothing to send.", file=sys.stderr)
         return 1
 
-    send(subject, text, to)
+    send(subject, text, to, html=html)
     print(f"Sent '{subject}' to {len(to)} recipient(s).")
     return 0
 

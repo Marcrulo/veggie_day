@@ -11,8 +11,8 @@ on:
         type: boolean
         default: true
       week:
-        description: "0 = current week, 1 = next week"
-        default: "1"
+        description: "auto (picks the tab holding next Monday), or force 0 / 1"
+        default: "auto"
 
 jobs:
   send:
@@ -28,7 +28,7 @@ jobs:
         run: python -m unittest discover -s tests
 
       - name: Preview the email in the log
-        run: python notify.py --week "${{ inputs.week || 1 }}" --dry-run
+        run: python notify.py --week "${{ inputs.week || 'auto' }}" --dry-run
 
       # Server and mailing list live in the repo (notify.py, recipients.txt).
       # The app password is the only secret.
@@ -36,4 +36,4 @@ jobs:
         if: ${{ inputs.dry_run != true }}
         env:
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
-        run: python notify.py --week "${{ inputs.week || 1 }}"
+        run: python notify.py --week "${{ inputs.week || 'auto' }}"

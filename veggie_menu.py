@@ -165,3 +165,28 @@ def parse(page_html: str) -> Week:
 
 def get_week(active_week: int = 1, url: str = MENU_URL) -> Week:
     return parse(fetch(active_week=active_week, url=url))
+
+
+def next_monday(today: date | None = None) -> date:
+    """The Monday of the coming week. On a Monday, that means seven days out."""
+    today = today or date.today()
+    return today + timedelta(days=7 - today.weekday())
+
+
+def get_upcoming_week(url: str = MENU_URL, today: date | None = None) -> Week:
+    """Return the week starting on the next Monday, whichever tab holds it.
+
+    Which tab that is depends on the day the job runs, and the site rolls the
+    tabs over at some point during the week - so ask for the date rather than
+    assuming a tab number.
+    """
+    target = next_monday(today)
+    tried = []
+    for active_week in (1, 0):
+        week = get_week(active_week=active_week, url=url)
+        tried.append(f"active_week={active_week} -> {week.week_number or '?'} ({week.monday})")
+        if week.monday == target:
+            return week
+    raise LookupError(
+        f"No tab holds the week starting {target}. Tabs offered: {'; '.join(tried)}"
+    )

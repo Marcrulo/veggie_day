@@ -1,41 +1,56 @@
-"""Turn a parsed week into the email subject and body."""
+"""Turn a parsed week into the email subject and body (plain text + HTML)."""
 
 from __future__ import annotations
 
-from veggie_menu import TAGS, Week
+from html import escape
 
-# How each tag is announced. Tweak the wording here.
+from veggie_menu import TAGS, Day, Week
+
+# How each tag is announced, and the colour of its badge in the HTML mail.
 TAG_LABELS = {
     "VEGANSK": "VEGANSK",
     "VEGETARISK": "VEGETARISK",
     "FISKEDAG": "FISKEDAG",
 }
+TAG_COLORS = {
+    "VEGANSK": ("#e7f4ea", "#1d6b34"),  # background, text
+    "VEGETARISK": ("#eef3e2", "#4f6b1d"),
+    "FISKEDAG": ("#e5eff7", "#1d4f6b"),
+}
+DEFAULT_COLORS = ("#eeeeee", "#555555")
 
 MENU_LINK = "https://gn.foodbycoor.dk/lautrupbjerg-7/da/ugemenu"
+LOCATION = "Kantinen · Lautrupbjerg 7"
+
+FONT = (
+    "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif"
+)
 
 
-def headlines(week: Week) -> list[str]:
+def headlines(week: Week) -> list[tuple[str, Day]]:
+    """The announcements, in tag order: ('VEGANSK', <Monday>)."""
+    return [(tag, day) for tag in TAGS for day in week.days_with(tag)]
+
+
+def headline_lines(week: Week) -> list[str]:
     """The one-liners, e.g. 'VEGANSK on Wednesday'."""
-    lines = []
-    for tag in TAGS:
-        for day in week.days_with(tag):
-            lines.append(f"{TAG_LABELS[tag]} on {day.name_en}")
-    return lines
+    return [f"{TAG_LABELS[tag]} on {day.name_en}" for tag, day in headlines(week)]
 
 
 def subject(week: Week) -> str:
-    lines = headlines(week)
+    lines = headline_lines(week)
     if not lines:
         return f"Canteen menu {week.week_number}: no veggie or fish day"
     return f"{week.week_number}: " + ", ".join(lines)
 
 
 def body(week: Week) -> str:
+    """Plain-text version, kept as the fallback part of the email."""
     parts = [f"Canteen menu for {week.label} ({week.week_number}).", ""]
 
-    lines = headlines(week)
+    lines = headline_lines(week)
     if lines:
-        parts += [line for line in lines]
+        parts += lines
     else:
         parts.append("No VEGANSK, VEGETARISK or FISKEDAG marked this week.")
     parts.append("")
@@ -49,3 +64,100 @@ def body(week: Week) -> str:
             parts.append(f"    - {prefix}{dish.title}")
     parts += ["", MENU_LINK]
     return "\n".join(parts)
+
+
+def _badge(tag: str, small: bool = False) -> str:
+    background, color = TAG_COLORS.get(tag, DEFAULT_COLORS)
+    padding = "1px 6px" if small else "3px 10px"
+    size = "11px" if small else "12px"
+    return (
+        f'<span style="display:inline-block;background:{background};color:{color};'
+        f"font-size:{size};font-weight:700;letter-spacing:.04em;padding:{padding};"
+        f'border-radius:4px;white-space:nowrap;">{escape(tag)}</span>'
+    )
+
+
+def html_body(week: Week) -> str:
+    """HTML version. Styles are inline because mail clients drop <style> blocks."""
+    rows = []
+
+    announcements = headlines(week)
+    if announcements:
+        for tag, day in announcements:
+            stamp = f" &middot; {day.date.strftime('%d/%m')}" if day.date else ""
+            rows.append(
+                '<tr><td style="padding:5px 0;">'
+                f"{_badge(tag)}"
+                '<span style="font-size:17px;color:#1b1c1a;padding-left:10px;">'
+                f"on <strong>{escape(day.name_en)}</strong>"
+                f'</span><span style="font-size:14px;color:#8a8f85;">{stamp}</span>'
+                "</td></tr>"
+            )
+    else:
+        rows.append(
+            '<tr><td style="padding:5px 0;font-size:16px;color:#6b6f66;">'
+            "No VEGANSK, VEGETARISK or FISKEDAG marked this week."
+            "</td></tr>"
+        )
+    announcement_table = (
+        '<table role="presentation" cellpadding="0" cellspacing="0" border="0" '
+        f'width="100%">{"".join(rows)}</table>'
+    )
+
+    days = []
+    for day in week.days:
+        dishes = []
+        for dish in day.dishes:
+            badges = "".join(_badge(tag, small=True) + " " for tag in dish.tags)
+            dishes.append(
+                '<div style="font-size:14px;line-height:1.5;color:#3d413a;padding:3px 0;">'
+                f"{badges}{escape(dish.title)}</div>"
+            )
+        stamp = day.date.strftime("%d/%m") if day.date else ""
+        highlight = "background:#fbfcfa;" if day.tags else ""
+        days.append(
+            f'<tr><td style="{highlight}padding:12px 14px;border-top:1px solid #ecefe8;">'
+            '<div style="font-size:13px;font-weight:700;color:#1b1c1a;'
+            'letter-spacing:.03em;text-transform:uppercase;padding-bottom:4px;">'
+            f'{escape(day.name_en)} <span style="color:#a2a79b;font-weight:400;">{stamp}</span>'
+            f'</div>{"".join(dishes)}</td></tr>'
+        )
+    week_table = (
+        '<table role="presentation" cellpadding="0" cellspacing="0" border="0" '
+        f'width="100%">{"".join(days)}</table>'
+    )
+
+    return f"""\
+<!DOCTYPE html>
+<html><body style="margin:0;padding:0;background:#f4f6f1;">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"
+       style="background:#f4f6f1;padding:24px 12px;">
+<tr><td align="center">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600"
+       style="max-width:600px;width:100%;background:#ffffff;border:1px solid #e4e8de;
+              border-radius:10px;font-family:{FONT};">
+
+<tr><td style="padding:24px 24px 4px 24px;">
+  <div style="font-size:12px;font-weight:700;color:#8a8f85;letter-spacing:.08em;
+              text-transform:uppercase;">{escape(LOCATION)}</div>
+  <div style="font-size:22px;font-weight:700;color:#1b1c1a;padding-top:6px;">
+    {escape(week.label)}</div>
+  <div style="font-size:14px;color:#8a8f85;padding-top:2px;">{escape(week.week_number)}</div>
+</td></tr>
+
+<tr><td style="padding:16px 24px 20px 24px;">{announcement_table}</td></tr>
+
+<tr><td style="padding:0 24px;">
+  <div style="font-size:12px;font-weight:700;color:#8a8f85;letter-spacing:.06em;
+              text-transform:uppercase;padding-bottom:2px;">Full week</div>
+</td></tr>
+<tr><td style="padding:0 10px 8px 10px;">{week_table}</td></tr>
+
+<tr><td style="padding:12px 24px 24px 24px;border-top:1px solid #ecefe8;">
+  <a href="{MENU_LINK}" style="font-size:13px;color:#5c7a4a;text-decoration:none;">
+    See the full menu on foodbycoor.dk &rarr;</a>
+</td></tr>
+
+</table>
+</td></tr></table>
+</body></html>"""

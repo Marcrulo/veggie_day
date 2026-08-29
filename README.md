@@ -10,9 +10,10 @@ Python 3.9+, standard library only — no dependencies to install.
 ## Quick start
 
 ```bash
-python notify.py --dry-run          # next week's email, printed
-python notify.py --week 0 --dry-run # this week instead
-python notify.py --json             # parsed menu as JSON
+python notify.py --dry-run                 # next week's email as plain text
+python notify.py --html-out preview.html   # the HTML mail, open it in a browser
+python notify.py --json                    # parsed menu as JSON
+python notify.py --week 0 --dry-run        # force a tab instead of auto-picking
 python -m unittest discover -s tests
 LIVE=1 python -m unittest tests.test_menu.TestLive   # also hits the real site
 ```
@@ -35,8 +36,13 @@ Full week:
 
 ## How the scraping works
 
-The page is server-rendered, so no browser is needed. `?active_week=0` is the
-current week and `?active_week=1` is next week — the Sunday job uses `1`.
+The page is server-rendered, so no browser is needed. The two tabs are
+`?active_week=0` and `?active_week=1`, but **which one holds next week depends on
+the day you ask** — so nothing assumes a tab number. `get_upcoming_week()` works
+out the coming Monday's date, fetches a tab, and checks the date in the heading
+against it, trying the other tab if it doesn't match. If neither holds that week
+the job fails with both dates in the message rather than mailing the wrong week.
+`--week 0` / `--week 1` still force a specific tab for debugging.
 
 Each `<div class="day">` holds a Danish day name and one `element title` div per
 dish. Themed days are written as an **ALL-CAPS prefix** on the dish title:
@@ -63,7 +69,7 @@ blank email.
 | File | Purpose |
 | --- | --- |
 | `veggie_menu.py` | Fetch + parse into `Week` / `Day` / `Dish` |
-| `message.py` | Email subject and body — **edit the wording here** |
+| `message.py` | Subject, plain-text body and HTML body — **edit the wording and colours here** |
 | `notify.py` | CLI: fetch, format, send over SMTP |
 | `recipients.txt` | The mailing list — **edit this to add people** |
 | `tests/` | Unit tests against saved HTML fixtures |
@@ -114,7 +120,9 @@ The schedule is `0 15 * * 0` (Sunday 15:00 UTC). GitHub's cron can drift by up t
 
 ## Adjusting things
 
-- **Wording** — `TAG_LABELS`, `subject()` and `body()` in `message.py`.
+- **Wording** — `TAG_LABELS`, `subject()`, `body()` and `html_body()` in
+  `message.py`. Preview changes instantly with `--html-out preview.html`.
+- **Badge colours** — `TAG_COLORS` in `message.py`, `(background, text)` per tag.
 - **Only mail when there's something to announce** — add `--skip-if-empty` to the
   send step; otherwise it sends a "nothing tagged this week" mail.
 - **Another canteen** — change `MENU_URL` in `veggie_menu.py`; the other
@@ -122,5 +130,10 @@ The schedule is `0 15 * * 0` (Sunday 15:00 UTC). GitHub's cron can drift by up t
 - **More tags** — add to `TAGS` in `veggie_menu.py` and `TAG_LABELS` in
   `message.py`.
 
-Note: the "next week" tab is week 1 on a Sunday today, and `notify.py` warns on
-stderr if the week it fetched has already started — watch the first real run's log.
+## The email itself
+
+Sent as `multipart/alternative`: an HTML part styled with inline CSS (mail
+clients discard `<style>` blocks) and the plain-text version as the fallback.
+Layout is old-fashioned nested tables on purpose — that is what survives Outlook.
+Everything from the site is HTML-escaped on the way in. It comes out around 6 KB,
+well under Gmail's 102 KB clipping limit.

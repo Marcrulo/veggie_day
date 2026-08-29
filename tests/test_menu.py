@@ -66,7 +66,7 @@ class TestParse(unittest.TestCase):
 class TestMessage(unittest.TestCase):
     def test_headlines(self):
         self.assertEqual(
-            message.headlines(load("week35.html")),
+            message.headline_lines(load("week35.html")),
             ["VEGANSK on Wednesday", "FISKEDAG on Thursday"],
         )
 
@@ -78,6 +78,54 @@ class TestMessage(unittest.TestCase):
         for day in ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]:
             self.assertIn(day, body)
         self.assertIn("[FISKEDAG]", body)
+
+
+class TestWeekSelection(unittest.TestCase):
+    def test_next_monday_from_each_weekday(self):
+        # Sunday 2026-08-30 -> the very next day; Monday 2026-08-31 -> a week on.
+        self.assertEqual(veggie_menu.next_monday(date(2026, 8, 30)), date(2026, 8, 31))
+        self.assertEqual(veggie_menu.next_monday(date(2026, 8, 31)), date(2026, 9, 7))
+        self.assertEqual(veggie_menu.next_monday(date(2026, 8, 29)), date(2026, 8, 31))
+        self.assertEqual(veggie_menu.next_monday(date(2026, 9, 2)), date(2026, 9, 7))
+
+    def test_picks_the_tab_holding_next_monday(self):
+        pages = {0: (FIXTURES / "week35.html").read_text(encoding="utf-8"),
+                 1: (FIXTURES / "week36.html").read_text(encoding="utf-8")}
+        asked = []
+
+        def fake_fetch(active_week=1, url=None, timeout=30):
+            asked.append(active_week)
+            return pages[active_week]
+
+        original = veggie_menu.fetch
+        veggie_menu.fetch = fake_fetch
+        try:
+            week = veggie_menu.get_upcoming_week(today=date(2026, 8, 30))
+            self.assertEqual(week.week_number, "Uge 36")
+            week = veggie_menu.get_upcoming_week(today=date(2026, 8, 23))
+            self.assertEqual(week.week_number, "Uge 35")
+            with self.assertRaises(LookupError):
+                veggie_menu.get_upcoming_week(today=date(2027, 1, 1))
+        finally:
+            veggie_menu.fetch = original
+        self.assertIn(0, asked, "should fall back to the other tab")
+
+
+class TestHtml(unittest.TestCase):
+    def test_html_is_balanced_and_complete(self):
+        html = message.html_body(load("week36.html"))
+        self.assertNotIn("{", html, "unrendered format placeholder")
+        self.assertEqual(html.count("<table"), html.count("</table>"))
+        self.assertIn("Uge 36", html)
+        self.assertIn("FISKEDAG", html)
+        self.assertIn("Risotto", html)
+
+    def test_html_escapes_dish_text(self):
+        week = load("week36.html")
+        week.days[0].dishes[0].title = 'Fisk & <chips> "med" dip'
+        html = message.html_body(week)
+        self.assertIn("Fisk &amp; &lt;chips&gt;", html)
+        self.assertNotIn("<chips>", html)
 
 
 class TestRecipients(unittest.TestCase):
