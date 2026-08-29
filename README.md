@@ -19,14 +19,15 @@ LIVE=1 python -m unittest tests.test_menu.TestLive   # also hits the real site
 ```
 
 The subject carries the announcements; the body is just the week's menu, with the
-tags marked in place. `VEGANSK` and `VEGETARISK` are announced together as one
-**VEGGIE day** (a day tagged both ways is named once), fish gets its own entry,
-and multiple days are joined: `VEGGIE day on Monday and Wednesday`.
+tags marked in place. Only `VEGANSK` and `VEGETARISK` are announced, together as
+one **VEGGIE day** (a day tagged both ways is named once), with multiple days
+joined: `VEGGIE day on Monday and Wednesday`. `FISKEDAG` is intentionally *not*
+in the subject — it still appears as a badge on its dish in the menu.
 
 Example output:
 
 ```
-Subject: Week 36: VEGGIE day on Monday, FISKEDAG on Friday
+Subject: Week 36: VEGGIE day on Monday
 
 Canteen menu for 31. august - 4. september 2026 (Uge 36).
 
@@ -120,12 +121,14 @@ The schedule is `0 15 * * 0` (Sunday 15:00 UTC). GitHub's cron can drift by up t
 
 ## Adjusting things
 
-- **Wording** — `VEGGIE_LABEL` / `FISH_LABEL`, `subject()`, `body()` and
-  `html_body()` in `message.py`. Preview with `--html-out preview.html`.
-- **Which tags count as veggie** — `VEGGIE_TAGS` in `message.py`.
+- **Wording** — `VEGGIE_LABEL`, `subject()`, `body()` and `html_body()` in
+  `message.py`. Preview with `--html-out preview.html`.
+- **Which tags are announced** — `VEGGIE_TAGS` in `message.py`. Tags in
+  `veggie_menu.TAGS` that are not listed there are shown in the menu but never
+  in the subject, which is how `FISKEDAG` is handled.
 - **Badge colours** — `TAG_COLORS` in `message.py`, `(background, text)` per tag.
 - **Only mail when there's something to announce** — add `--skip-if-empty` to the
-  send step; otherwise it sends a "nothing tagged this week" mail.
+  send step; otherwise a week with no veggie day still gets a "no VEGGIE day" mail.
 - **Another canteen** — change `MENU_URL` in `veggie_menu.py`; the other
   Lautrupbjerg locations use the same layout.
 - **More tags** — add to `TAGS` in `veggie_menu.py` and `TAG_LABELS` in

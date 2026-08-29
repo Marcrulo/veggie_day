@@ -67,15 +67,12 @@ class TestMessage(unittest.TestCase):
     def test_headlines(self):
         self.assertEqual(
             message.headline_lines(load("week35.html")),
-            ["VEGGIE day on Wednesday", "FISKEDAG on Thursday"],
+            ["VEGGIE day on Wednesday"],
         )
 
     def test_a_day_with_both_veggie_tags_counts_once(self):
         week = load("week36.html")  # Monday is VEGETARISK and VEGANSK
-        self.assertEqual(
-            message.headline_lines(week),
-            ["VEGGIE day on Monday", "FISKEDAG on Friday"],
-        )
+        self.assertEqual(message.headline_lines(week), ["VEGGIE day on Monday"])
 
     def test_veggie_days_are_joined(self):
         week = load("week36.html")
@@ -95,12 +92,25 @@ class TestMessage(unittest.TestCase):
     def test_subject_format(self):
         self.assertEqual(
             message.subject(load("week36.html")),
-            "Week 36: VEGGIE day on Monday, FISKEDAG on Friday",
+            "Week 36: VEGGIE day on Monday",
         )
         self.assertEqual(
             message.subject(load("week35.html")),
-            "Week 35: VEGGIE day on Wednesday, FISKEDAG on Thursday",
+            "Week 35: VEGGIE day on Wednesday",
         )
+
+    def test_fiskedag_is_not_announced_but_stays_in_the_menu(self):
+        week = load("week36.html")  # FISKEDAG on Friday
+        self.assertNotIn("FISKEDAG", message.subject(week))
+        self.assertIn("[FISKEDAG]", message.body(week))
+        self.assertIn("FISKEDAG", message.html_body(week))
+
+    def test_week_with_only_fiskedag_has_no_veggie_headline(self):
+        week = load("week36.html")
+        for dish in week.days[0].dishes:
+            dish.tags = []
+        self.assertEqual(message.headline_lines(week), [])
+        self.assertEqual(message.subject(week), "Week 36: no VEGGIE day")
 
     def test_body_is_just_the_menu(self):
         """The announcements live in the subject now, not above the menu."""

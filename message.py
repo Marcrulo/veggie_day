@@ -6,12 +6,11 @@ from html import escape
 
 from veggie_menu import Week
 
-# VEGANSK and VEGETARISK are announced together as one "VEGGIE day"; fish is
-# announced on its own. The badges in the menu below still show the exact tag.
+# Only VEGANSK and VEGETARISK reach the subject line, together as one
+# "VEGGIE day". FISKEDAG is deliberately not announced - it still shows as a
+# badge on its dish in the menu below.
 VEGGIE_TAGS = ("VEGANSK", "VEGETARISK")
 VEGGIE_LABEL = "VEGGIE day"
-FISH_TAG = "FISKEDAG"
-FISH_LABEL = "FISKEDAG"
 
 # Badge colours in the HTML mail.
 TAG_COLORS = {
@@ -41,21 +40,15 @@ def headline_lines(week: Week) -> list[str]:
 
     A day counts once even if it carries both veggie tags.
     """
-    lines = []
     veggie = [d.name_en for d in week.days if any(t in VEGGIE_TAGS for t in d.tags)]
-    if veggie:
-        lines.append(f"{VEGGIE_LABEL} on {_join(veggie)}")
-    fish = [d.name_en for d in week.days if FISH_TAG in d.tags]
-    if fish:
-        lines.append(f"{FISH_LABEL} on {_join(fish)}")
-    return lines
+    return [f"{VEGGIE_LABEL} on {_join(veggie)}"] if veggie else []
 
 
 def subject(week: Week) -> str:
-    """'Week 36: VEGANSK on Monday, FISKEDAG on Friday'."""
+    """'Week 36: VEGGIE day on Monday and Wednesday'."""
     lines = headline_lines(week)
     if not lines:
-        return f"Week {week.number}: no veggie or fish day"
+        return f"Week {week.number}: no VEGGIE day"
     return f"Week {week.number}: " + ", ".join(lines)
 
 
