@@ -19,6 +19,7 @@ from datetime import date
 from email.message import EmailMessage
 from pathlib import Path
 
+import classify
 import message
 import veggie_menu
 
@@ -102,6 +103,11 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--file", help="parse a saved HTML file instead of fetching (for testing)")
     parser.add_argument(
+        "--no-llm",
+        action="store_true",
+        help="skip the LLM fallback for an untagged week; leave it untagged",
+    )
+    parser.add_argument(
         "--to",
         action="append",
         help="send to this address instead of recipients.txt (repeatable; for testing)",
@@ -123,6 +129,14 @@ def main(argv: list[str] | None = None) -> int:
     if not week.days:
         print("No menu found on the page - the site layout may have changed.", file=sys.stderr)
         return 1
+
+    # The site usually writes the tags itself; this only does anything when a
+    # whole week comes back without them. A failure here is not fatal - the
+    # menu still goes out, just without the tags.
+    if not args.no_llm:
+        warning = classify.apply_fallback(week)
+        if warning:
+            print(warning, file=sys.stderr)
 
     # Only reachable when a tab was forced with --week 0/1; --week auto selects
     # by date and fails loudly instead.
