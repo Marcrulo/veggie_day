@@ -158,7 +158,8 @@ costs minutes per dish on a CPU, so requests send `"think": false`.
   is `temperature: 0`, so the same menu always produces the same email.
 - **Speed:** CPU only, capped at 4 threads to match the runner: ~110 s for a
   full week cold, ~100 s warm — about 20 s a dish, nearly all of it generation.
-  Runner cores are usually a bit slower; budget 3 minutes. The client timeout
+  On the Actions runner it measured ~26 s a dish, so an untagged week adds
+  ~2–3 minutes. The client timeout
   is 600 s per dish.
 - **On failure** — Ollama not running, model not pulled, timeout, unparseable
   reply — the run prints a warning to stderr and sends the menu untagged. The
@@ -187,9 +188,6 @@ announcement at all.
 - The Ollama setup runs on **every** run, even weeks the site tagged properly,
   because knowing in advance whether it is needed would mean scraping the site
   twice. It costs a few runner minutes a week.
-- The runner's disk is nominally 14 GB, mostly preinstalled toolchains. A
-  first step deletes .NET, Android, GHC and CodeQL to make room for the weights
-  and the cache's copy of them.
 - The weights are cached with `actions/cache`. GitHub evicts caches after 7 days
   without a hit and this job runs every 7 days, so expect the occasional miss —
   it just re-downloads.

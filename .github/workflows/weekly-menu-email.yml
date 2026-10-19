@@ -41,14 +41,6 @@ jobs:
       # few runner minutes, while working out in advance whether it is needed
       # would mean scraping the site twice. Nothing here needs a key: the model
       # runs on this runner, and classify.py talks to it over localhost.
-      # The runner's disk is nominally 14GB, mostly taken by preinstalled
-      # toolchains this job never uses. The weights plus the cache's tarball of
-      # them need ~16GB, so clear the biggest of those first.
-      - name: Free disk space
-        run: |
-          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
-          df -h /
-
       - name: Install Ollama
         run: |
           curl -fsSL https://ollama.com/install.sh | sh
