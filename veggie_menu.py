@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import html
 import re
+import time
+import urllib.error
 import urllib.request
 from dataclasses import dataclass, field
 from datetime import date, timedelta
@@ -79,15 +81,29 @@ class Week:
         return [d for d in self.days if tag in d.tags]
 
 
-def fetch(active_week: int = 1, url: str = MENU_URL, timeout: int = 30) -> str:
-    """Download the menu page. active_week=0 is this week, 1 is next week."""
+def fetch(active_week: int = 1, url: str = MENU_URL, timeout: int = 30,
+          attempts: int = 4) -> str:
+    """Download the menu page. active_week=0 is this week, 1 is next week.
+
+    The site sometimes stops answering for a minute or two, so failed
+    attempts are retried with a growing pause (30s, 60s, 120s).
+    """
     request = urllib.request.Request(
         f"{url}?active_week={active_week}",
         headers={"User-Agent": "veggie-day/1.0 (canteen menu notifier)"},
     )
-    with urllib.request.urlopen(request, timeout=timeout) as response:
-        charset = response.headers.get_content_charset() or "utf-8"
-        return response.read().decode(charset, errors="replace")
+    for attempt in range(1, attempts + 1):
+        try:
+            with urllib.request.urlopen(request, timeout=timeout) as response:
+                charset = response.headers.get_content_charset() or "utf-8"
+                return response.read().decode(charset, errors="replace")
+        except (urllib.error.URLError, TimeoutError) as error:
+            if attempt == attempts:
+                raise
+            pause = 30 * 2 ** (attempt - 1)
+            print(f"fetch attempt {attempt}/{attempts} failed ({error}); retrying in {pause}s")
+            time.sleep(pause)
+    raise AssertionError("unreachable")
 
 
 def _clean(raw: str) -> str:

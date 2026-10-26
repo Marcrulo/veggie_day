@@ -159,6 +159,52 @@ class TestWeekSelection(unittest.TestCase):
         self.assertIn(0, asked, "should fall back to the other tab")
 
 
+class TestFetchRetry(unittest.TestCase):
+    """The canteen site occasionally stops answering for a minute or two."""
+
+    def fake_urlopen(self, outcomes):
+        import io
+        import urllib.error
+        from contextlib import contextmanager
+
+        calls = []
+
+        @contextmanager
+        def urlopen(request, timeout=None):
+            calls.append(request.full_url)
+            outcome = outcomes[len(calls) - 1]
+            if outcome is None:
+                raise urllib.error.URLError("timed out")
+            response = io.BytesIO(outcome.encode())
+            response.headers = type("H", (), {"get_content_charset": lambda self: "utf-8"})()
+            yield response
+
+        return urlopen, calls
+
+    def run_fetch(self, outcomes, **kwargs):
+        urlopen, calls = self.fake_urlopen(outcomes)
+        sleeps = []
+        originals = veggie_menu.urllib.request.urlopen, veggie_menu.time.sleep
+        veggie_menu.urllib.request.urlopen = urlopen
+        veggie_menu.time.sleep = sleeps.append
+        try:
+            return veggie_menu.fetch(**kwargs), calls, sleeps
+        finally:
+            veggie_menu.urllib.request.urlopen, veggie_menu.time.sleep = originals
+
+    def test_retries_after_a_timeout(self):
+        page, calls, sleeps = self.run_fetch([None, None, "<html>ok</html>"])
+        self.assertEqual(page, "<html>ok</html>")
+        self.assertEqual(len(calls), 3)
+        self.assertEqual(len(sleeps), 2)
+
+    def test_gives_up_after_the_last_attempt(self):
+        import urllib.error
+
+        with self.assertRaises(urllib.error.URLError):
+            self.run_fetch([None] * 10, attempts=3)
+
+
 class TestHtml(unittest.TestCase):
     def test_html_is_balanced_and_complete(self):
         html = message.html_body(load("week36.html"))
